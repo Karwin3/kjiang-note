@@ -95,6 +95,29 @@ export default defineComponent({
 </script>
 ```
 
+利用ref函数获取组件中的标签元素
+
+```vue
+<template>
+  <div>
+    <input type="text" ref="inputRef">
+  </div>
+</template>
+
+<script lang="ts" setup>
+// 1. 页面加载完成后，文本框自动获取焦点
+import { ref, onMounted } from "vue"
+const inputRef = ref<HTMLElement | null>(null)
+onMounted(() => {
+  inputRef.value && inputRef.value.focus()
+})
+</script>
+
+<style lang="less" scoped>
+
+</style>
+```
+
 
 
 ### 3. reactive
@@ -558,5 +581,600 @@ export default function () {
 
   return { x, y }
 }
+```
+
+### 8.  toRef与toRefs
+
+#### 1. toRef
+
+- toRef  原始对象为非响应式，数据更新，视图不更新 
+- toRef  原始对象为响应式，   数据更新，视图更新 
+
+```vue
+// App.vue
+<template>
+  <div>
+    <p>name:{{ name }}</p>
+    <p>age:{{ age }}</p>
+    <hr>
+    <button @click="test">test</button>
+    <hr>
+    <Child :age="age" />
+  </div>
+</template>
+  
+<script lang ="ts" setup>
+import { ref, reactive, toRef } from "vue"
+import Child from './components/Child.vue'
+
+let m1 = reactive({
+  name: 'jk1',
+  age: 9
+})
+
+const name = toRef(m1, 'name')
+const age = ref(m1.age)
+
+function test() {
+  // name.value += "="
+  // m1.name += "="
+  age.value += 1
+  // m1.age += 1
+}
+</script>
+
+<style lang="less" scoped>
+
+</style>
+```
+
+```vue
+// Child.vue
+<template>
+  <div>
+    Child
+    <p>age: {{ props.age }}</p>
+    <p>length: {{ length }}</p>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { ref, Ref, toRef, computed } from "vue"
+// name: 'Child'
+function getLength(age: Ref) {
+  return computed(() => {
+    return age.value.toString().length
+  })
+}
+const props = defineProps({
+  age: {
+    type: Number,
+    required: true
+  }
+})
+const length = getLength(toRef(props, 'age'))
+
+</script>
+
+<style lang="less" scoped>
+
+</style>
+```
+
+
+
+#### 2. toRefs
+
+把一个响应式对象转换成普通对象，该普通对象的每个 property 都是一个 ref
+
+应用: 当从合成函数返回响应式对象时，toRefs 非常有用，这样消费组件就可以在不丢失响应式的情况下对返回的对象进行分解使用
+
+```vue
+<template>
+  <div>
+    name: {{ name }}
+  </div>
+  <div>
+    age: {{ age }}
+  </div>
+  <hr>
+  <div>
+    name2: {{ name2 }}
+  </div>
+  <div>
+    age2: {{ age2 }}
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, reactive, toRefs } from 'vue'
+function useFeature() {
+  const stu2 = reactive({
+    name2: 'jk2',
+    age2: 12
+  })
+  return {
+    ...toRefs(stu2)
+  }
+}
+export default defineComponent({
+  name: 'App',
+  setup() {
+    const stu = reactive({
+      name: 'jk',
+      age: 1
+    })
+    const stu1 = toRefs(stu)
+    // 定时器
+    setInterval(() => {
+      // stu.name += "==="
+      stu1.name.value += "==="
+      console.log("===");
+    }, 1000)
+    const {name2, age2} = useFeature()
+    return {
+      // ...stu // 不是响应式数据 {name: 'jk',age: 1}
+      ...stu1,
+      name2,
+      age2
+    }
+  },
+})
+</script>
+
+<style>
+
+</style>
+```
+
+### 9. shallowRef 与 shallowReactive
+
+- shallowReactive : 只处理了对象内最外层属性的响应式(也就是浅响应式)
+- shallowRef: 只处理了value的响应式, 不进行对象的reactive处理
+- 什么时候用浅响应式呢?
+  - 一般情况下使用ref和reactive即可
+  - 如果有一个对象数据, 结构比较深, 但变化时只是外层属性变化 ===> shallowReactive
+  - 如果有一个对象数据, 后面会产生新的对象来替换 ===> shallowRe
+
+```vue
+<template>
+  <div>
+    <p>ref</p>
+    {{ m1 }} <br />
+    <p>shallowRef</p>
+    {{ m2 }} <br />
+    <p>reactive</p>
+    {{ m3 }} <br />
+    <p>shallowReactive</p>
+    {{ m4 }} <br />
+    <hr>
+    <button @click="test">test</button>
+  </div>
+</template>
+
+<!-- shallowRef 和 shallowReactive -->
+<script lang="ts" setup>
+import { reactive, ref, shallowRef, shallowReactive } from "vue"
+const m1 = ref({
+  name: 'jk1',
+  hobby: {
+    name: 'none1'
+  }
+})
+const m2 = shallowRef({
+  name: 'jk2',
+  hobby: {
+    name: 'none2'
+  }
+})
+const m3 = reactive({
+  name: 'jk3',
+  hobby: {
+    name: 'none3'
+  }
+})
+const m4 = shallowReactive({
+  name: 'jk4',
+  hobby: {
+    name: 'none4'
+  }
+})
+function test() {
+  // m1.value.name += "name"
+  // m1.value.hobby.name += "hobby"
+
+  // m2.value.name += "name"
+  // m2.value.hobby.name += "hobby"
+
+  // m3.name += "name"
+  // m3.hobby.name += "hobby"
+  
+  // m4.name += "name"
+  m4.hobby.name += "hobby"
+}
+</script>
+
+<style lang="less" scoped>
+
+</style>
+```
+
+### 10. readonly 与 shallowReadonly
+
+- readonly:
+  - 深度只读数据
+  - 获取一个对象 (响应式或纯对象) 或 ref 并返回原始代理的只读代理。
+  - 只读代理是深层的：访问的任何嵌套 property 也是只读的。
+- shallowReadonly
+  - 浅只读数据
+  - 创建一个代理，使其自身的 property 为只读，但不执行嵌套对象的深度只读转换
+- 应用场景:
+  - 在某些特定情况下, 我们可能不希望对数据进行更新的操作, 那就可以包装生成一个只读代理对象来读取数据, 而不能修改或删除
+
+```vue
+<template>
+  <div>
+    <p>readonly</p>
+    {{ m1 }} <br />
+    <p>shallowRef</p>
+    {{ m2 }} <br />
+    <hr>
+    <button @click="test">test</button>
+  </div>
+</template>
+
+<!-- readonly shallowReadonly -->
+<script lang="ts" setup>
+import { ref, readonly, shallowReadonly, reactive } from "vue"
+const m1 = readonly(ref({
+  name: 'jk1',
+  hobby: {
+    name: 'none1'
+  }
+}))
+const m2 = shallowReadonly(reactive({
+  name: 'jk2',
+  hobby: {
+    name: 'none2'
+  }
+}))
+function test(){
+  // m1.name += "name"
+  // m2.name += "name"
+   m2.hobby.name += "name"
+}
+</script>
+
+<style lang="less" scoped>
+
+</style>
+
+```
+
+
+
+### 11.  toRaw与markRaw 
+
+- toRaw
+  - 返回由 `reactive` 或 `readonly` 方法转换成响应式代理的普通对象。
+  - 这是一个还原方法，可用于临时读取，访问不会被代理/跟踪，写入时也不会触发界面更新。
+- markRaw
+  - 标记一个对象（不包括ref和reactive），使其永远不会转换为代理。返回对象本身
+  - 应用场景:
+    - 有些值不应被设置为响应式的，例如复杂的第三方类实例或 Vue 组件对象。
+    - 当渲染具有不可变数据源的大列表时，跳过代理转换可以提高性能。
+
+```vue
+<template>
+  <div>
+    {{ m1 }} <br />
+    {{ m2 }} <br />
+    {{ state }} <br />
+    <hr>
+    <button @click="toRawFun">toRaw</button>
+    <button @click="markRawFun">markRaw</button>
+  </div>
+</template>
+
+<!-- toRaw 与 markRaw -->
+<script lang="ts" setup>
+import { ref, toRaw, reactive, markRaw } from "vue"
+let m1 = reactive({
+  name: 'jk1',
+  hobby: {
+    name: 'none1'
+  }
+})
+const m2 = ref({
+  name: 'jk2',
+  hobby: {
+    name: 'none2'
+  }
+})
+
+function toRawFun() {
+  const m3 = toRaw(m1)
+  const m4 = toRaw(m2.value)
+  m3.name += 'name'
+  m4.name += 'name'
+  console.log(m1)
+  console.log(m2)
+}
+
+let obj = { name: 'jk3', age: 18 }
+// 不能追踪，监听，作为响应式的数据
+obj = markRaw(obj)
+let state = reactive(obj)
+
+function markRawFun() {
+  state.name = 'zs'
+}
+</script>
+
+<style lang="less" scoped>
+
+</style>
+```
+
+### 12. customRef
+
+- 创建一个自定义的 ref，并对其依赖项跟踪和更新触发进行显式控制
+
+```vue
+<template>
+  <div>
+    <input type="text" v-model="m1">
+    <p>{{ m1 }}</p>
+  </div>
+</template>
+<!-- customRef -->
+<script lang="ts" setup>
+import { ref, customRef } from "vue"
+// 防抖函数
+function useDebouncedRef<T>(val: T, delay = 200) {
+  let timeout: number
+  return customRef((track, trigger) => {
+    return {
+      get() {
+        track()
+        return val
+      },
+      set(newValue: T) {
+        clearTimeout(timeout)
+        timeout = setTimeout(() => {
+          val = newValue
+          trigger()
+        }, delay);
+      }
+    }
+  })
+}
+
+// let m1 = ref(1)
+let m1 = useDebouncedRef(1, 2000)
+</script>
+```
+
+### 13. provide 与 inject 
+
+- provide`和`inject`提供依赖注入，功能类似 2.x 的`provide/inject
+- 实现跨层级组件(祖孙)间通信
+
+```vue
+// App.vue 
+<template>
+  <div>
+    <p>{{ color }}</p>
+    <button @click="color = 'red'">red</button>
+    <button @click="color = 'yellow'">yellow</button>
+    <button @click="color = 'green'">green</button>
+    <hr>
+    <Child />
+  </div>
+</template>
+<!-- provide inject -->
+<script lang="ts" setup>
+import { ref, provide } from "vue"
+import Child from "./components/Child.vue";
+
+const color = ref('red')
+
+provide('color', color)
+</script>
+
+<style lang="less" scoped>
+
+</style>
+```
+
+
+
+```vue
+// Child.vue 
+<template>
+  <div>
+    <p>Child</p>
+    <GrandSon />
+  </div>
+</template>
+
+<script lang="ts" setup>
+import GrandSon from './GrandSon.vue'
+import { ref } from "vue"
+
+</script>
+
+<style lang="less" scoped>
+
+</style>
+```
+
+
+
+```vue
+// GrandSon.vue
+<template>
+  <div>
+    <p :style="{ color }">GrandSon</p>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { ref, inject } from "vue"
+
+const color: string | undefined = inject('color')
+
+</script>
+
+<style lang="less" scoped>
+
+</style>
+```
+
+### 14. 响应式数据的判断
+
+```vue
+<template>
+  <div>
+  </div>
+</template>
+<!-- 响应式数据的判断 -->
+<!-- 
+  isRef: 检查一个值是否为一个 ref 对象
+  isReactive: 检查一个对象是否是由 reactive 创建的响应式代理
+  isReadonly: 检查一个对象是否是由 readonly 创建的只读代理
+  isProxy: 检查一个对象是否是由 reactive 或者 readonly 方法创建的代理 
+ -->
+<script lang="ts" setup>
+import { ref, isRef, isReactive, reactive, readonly, isReadonly, isProxy } from "vue"
+console.log(isRef(ref({})));
+console.log(isReactive(reactive({})));
+console.log(isReadonly(readonly({})));
+console.log(isProxy(reactive({})));
+console.log(isProxy(readonly({})));
+</script>
+
+```
+
+### 15. teleport
+
+- Teleport 提供了一种干净的方法, 让组件的html在父组件界面外的特定标签(很可能是body)下插入显示
+
+```vue
+// App
+<template>
+  <div>
+    <p>App</p>
+    <ModalButton />
+  </div>
+</template>
+<script lang="ts" setup>
+// import { ref } from "vue"
+import ModalButton from './ModalButton.vue'
+</script>
+<style lang="sass" scoped>
+
+</style>
+```
+
+```vue
+// ModalButton.vue
+<template>
+  <div>
+    <button @click="modalOpen = true">
+      Open full screen modal! (With teleport!)
+    </button>
+
+    <teleport to="body">
+      <div v-if="modalOpen" class="modal">
+        <div>
+          I'm a teleported modal!
+          (My parent is "body")
+          <button @click="modalOpen = false">
+            Close
+          </button>
+        </div>
+      </div>
+    </teleport>
+  </div>
+</template>
+<script lang="ts" setup>
+import { ref } from "vue"
+const modalOpen = ref(false)
+</script>
+<style scoped>
+.modal {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, .5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  width: 300px;
+  height: 300px;
+  padding: 5px;
+}
+</style>
+```
+
+
+
+### 16. suspense
+
+- 它们允许我们的应用程序在等待异步组件时渲染一些后备内容，可以让我们创建一个平滑的用户体验
+
+```vue
+// App.vue
+<template>
+  <div>
+    <Suspense>
+      <template v-slot:default>
+        <AsyncAddress />
+      </template>
+      <template v-slot:fallback>
+        <h1>LOADING...</h1>
+      </template>
+    </Suspense>
+  </div>
+</template>
+<script lang="ts" setup>
+import { ref } from "vue"
+import AsyncAddress from './components/AsyncAddress.vue'
+
+</script>
+<style scoped>
+
+</style>
+```
+
+```vue
+// AsyncAddress.vue
+<template>
+  <h2>{{ data }}</h2>
+</template>
+  
+<script lang="ts">
+import axios from 'axios'
+export default {
+  async setup() {
+    const result = await axios.get('/data/address.json')
+    return {
+      data: result.data
+    }
+  }
+}
+</script>
 ```
 
