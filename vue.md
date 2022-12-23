@@ -1,6 +1,6 @@
 ## 1. vue prop 传值类型
 
-```
+```js
   props: {
     demoString: {
       type: String,

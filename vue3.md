@@ -4,9 +4,6 @@
 
 - 新的option, 所有的组合API函数都在此使用, 只在初始化时执行一次
 - 函数如果返回对象, 对象中的属性或方法, 模板中可以直接使用
-
-
-
 - setup执行的时机
   - 在beforeCreate之前执行(一次), 此时组件对象还没有创建
   - this是undefined, 不能通过this来访问data/computed/methods / props
@@ -25,6 +22,7 @@
   - attrs: 包含没有在props配置中声明的属性的对象, 相当于 this.$attrs
   - slots: 包含所有传入的插槽内容的对象, 相当于 this.$slots
   - emit: 用来分发自定义事件的函数, 相当于 this.$emit
+- ``
 
 ```vue
 // App
@@ -55,9 +53,7 @@ export default defineComponent({
 </script>
 <style></style>
 
-```
-
-
+`````
 
 ### 2. ref
 
@@ -1128,8 +1124,6 @@ const modalOpen = ref(false)
 }
 </style>
 ```
-
-
 
 ### 16. suspense
 

@@ -10,7 +10,6 @@ tsc -V
 ```
 
 
-
 ### 2. vscode 自动编译
 
 ```json
